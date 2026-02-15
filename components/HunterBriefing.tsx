@@ -1,0 +1,6 @@
+﻿'use client';
+import type { HunterBriefing as HunterBriefingType } from '@/types';
+interface HunterBriefingProps { briefing: HunterBriefingType|null; loading: boolean; onRefresh: () => void; }
+export function HunterBriefing({ briefing, loading, onRefresh }: HunterBriefingProps) {
+  return (<section className="mb-4 rounded border border-cyan-500/20 bg-black/30 px-3 py-2"><div className="flex items-center justify-between mb-2"><span className="text-cyan-500/80 font-mono text-xs uppercase tracking-wider">Deep-Sea Radar</span><button type="button" onClick={onRefresh} disabled={loading} className="text-cyan-500/60 hover:text-cyan-400 font-mono text-xs disabled:opacity-50">{loading?'Scanning...':'Refresh'}</button></div>{briefing?.summary&&<p className="text-cyan-300/90 font-mono text-xs mb-2">{briefing.summary}</p>}<ul className="space-y-1 max-h-32 overflow-y-auto">{briefing?.items.map(item=>(<li key={item.id} className={`font-mono text-xs ${item.action==='INTERVENE'?'text-cyan-300':item.action==='WATCH'?'text-cyan-500/80':'text-cyan-600/70'}`}>锛?{item.line}</li>))}</ul>{!loading&&!briefing?.items.length&&<p className="text-cyan-600/60 font-mono text-xs">No targets. Syncing.</p>}</section>);
+}
