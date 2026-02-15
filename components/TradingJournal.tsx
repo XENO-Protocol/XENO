@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import type { JournalResult } from '@/types';
 interface TradingJournalProps { entry: string; onEntryChange: (v: string) => void; result: JournalResult|null; loading: boolean; onEvaluate: () => void; }
 export function TradingJournal({ entry, onEntryChange, result, loading, onEvaluate }: TradingJournalProps) {

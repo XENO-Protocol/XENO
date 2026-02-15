@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import type { HunterBriefing as HunterBriefingType } from '@/types';
 interface HunterBriefingProps { briefing: HunterBriefingType|null; loading: boolean; onRefresh: () => void; }
 export function HunterBriefing({ briefing, loading, onRefresh }: HunterBriefingProps) {
