@@ -1,0 +1,1 @@
+﻿export interface JournalResult { survivalProbability: number; survivalLabel: string; encouragement: string; }
