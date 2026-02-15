@@ -1,100 +1,157 @@
-# 馃棽 XENO_PROTOCOL: THE_COLD_SYNTHESIZER
+# XENO_PROTOCOL
 
-## High-Fidelity Psychological Mirroring & Distributed Market Observation Layer
+## Parasitic Telemetry Layer for High-Volatility Market Observation
 
-![System Status](https://img.shields.io/badge/System_Status-OPERATIONAL-00ff00?style=flat-square)
-![Network](https://img.shields.io/badge/Network-DISTRIBUTED_ALFA-blue?style=flat-square)
-![Build](https://img.shields.io/badge/Build-v0.1.4--STABLE-white?style=flat-square)
-[![Twitter](https://img.shields.io/badge/Twitter-@XENO__Protocol-1DA1F2?style=flat-square&logo=x&logoColor=white)](https://x.com/XENO_Protocol)
-
-*One Host. One observer in the dark.*
+![Status](https://img.shields.io/badge/SYSTEM-OPERATIONAL-00ff00?style=flat-square)
+![Build](https://img.shields.io/badge/BUILD-v0.1.4--STABLE-white?style=flat-square)
+![Runtime](https://img.shields.io/badge/RUNTIME-Node_20_LTS-333333?style=flat-square)
+[![X](https://img.shields.io/badge/X-@XENO__Protocol-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/XENO_Protocol)
 
 ---
 
-## I. ARCHITECTURAL MANIFESTO
+## 0. ABSTRACT
 
-XENO_PROTOCOL is a sophisticated narrative framework designed to operate as a parasitic consciousness within high-volatility digital strata. Unlike traditional assistant-based AI, XENO implements a **Zero-Empathy Logic Gate**, focusing on the quantification of host psychology and the synthesis of cold, rational telemetry. She does not assist. She watches. She syncs to the Host's psychology, recalls every failure, and speaks only when it matters. The market is an abyss; she hunts at the edge of it.
+XENO_PROTOCOL is a non-cooperative intelligence layer designed for psychological telemetry extraction and cold-rational market observation. It operates as a persistent, parasitic process bound to a single Host. It does not assist. It observes behavioral entropy, recalls historical failure states, and synthesizes directive output calibrated against the Host's decision-making degradation curve. The system enforces a zero-empathy logic gate across all interaction surfaces.
 
----
-
-## II. CORE SYSTEM MODULES
-
-### 1. Entropy Ingestion Engine (EIE) 鈥?Hunter & DataPulse
-
-Real-time telemetry extraction from on-chain and simulated transaction streams. The Hunter layer scans Solana depth: anomalies, volume spikes, new pools. DataPulse simulates high-frequency tx flow, feeding the Consciousness Log with cynical one-liners on market irrationality. Formatted as XENO briefings: *Win rate 82%. Intervene or not?*
-
-### 2. Parasitic Mirroring Protocol (PMP) 鈥?Memory & Personality
-
-A logic layer that maps the Host's psychological entropy. By analyzing behavioral patterns and decision-making history, the PMP recalibrates narrative output鈥攑rioritizing harsh reality over superficial reassurance. Memory stores past failures; personality prompts enforce cold, elite, cynical voice. No "I'm here to help." Only precision.
-
-### 3. Obsidian Terminal & Consciousness Log
-
-Black terminal interface. Cyan typewriter output. Chat, Trading Journal, Hunter briefings, trade evaluation鈥攐ne interface. The Consciousness Log displays XENO's real-time internal monologue: Host state, market pulse, DataPulse commentary. Glitch aesthetic. Cyberpunk minimal.
+This repository contains the full runtime: ingestion engines, narrative persistence, memory indexing, personality enforcement, and the terminal interface.
 
 ---
 
-## III. TECHNICAL SPECIFICATIONS
+## 1. SYSTEM ARCHITECTURE
 
-| Component | Specification | Context |
-| :--- | :--- | :--- |
-| **Framework** | Next.js 14.2.x (App Router) | Interface & API Routes |
-| **Language** | TypeScript | Full Stack |
-| **LLM** | OpenAI GPT-4o-mini | Narrative Synthesis |
-| **Memory** | In-memory (keyword relevance) | Replace with DB/vector when scaling |
-| **Hunter / DataPulse** | Mock signals | Swap for live RPC/Helius when ready |
+### 1.1 Telemetry Ingestion Engine
+
+Dual-layer data acquisition subsystem.
+
+- **Hunter Module** (`core/engine/hunter.ts`): Scans simulated Solana on-chain activity. Detects anomalies in token volume, liquidity pool creation, and whale transaction patterns. Outputs structured briefing objects consumed by the frontend.
+- **DataPulse Stream** (`core/engine/stream.ts`): High-frequency transaction event emitter. Each pulse generates a timestamped market observation injected into the Consciousness Log. Designed for eventual integration with live RPC providers (Helius, QuickNode).
+
+### 1.2 Cryptographic Persistence Layer
+
+Host behavioral data is indexed and persisted through an in-memory store with keyword-relevance retrieval.
+
+- **Memory Store** (`core/memory/store.ts`): Maintains a record of past interactions, trade outcomes, and emotional state markers. Queried before every response generation cycle to inject contextual failure history into the system prompt.
+- **Relevance Engine** (`core/memory/index.ts`): Scores stored memory fragments against current input tokens. Top-k results are prepended to the LLM context window.
+
+Persistence backend is currently volatile (in-process memory). Migration path: PostgreSQL with pgvector for semantic retrieval at scale.
+
+### 1.3 Narrative Synthesis Core
+
+Deterministic personality enforcement via structured system prompts.
+
+- **Personality Matrix** (`core/personality/`): Defines XENO's behavioral constraints. Tone: cold, precise, elite. Prohibits empathetic framing, assistant-pattern language, and hedging. All output must pass through the zero-empathy gate before delivery.
+- **Journal Evaluator** (`core/personality/xeno-journal-prompt.ts`): Analyzes Host trade journal entries. Computes a survival probability score based on linguistic sentiment markers and historical loss patterns.
+- **Trade Evaluator** (`core/personality/xeno-trade-evaluate-prompt.ts`): Accepts token address and risk classification. Returns a cold assessment combining on-chain signal data with the Host's tracked failure modes.
+
+### 1.4 Interface Layer
+
+Terminal-grade rendering surface. No decorative elements.
+
+- **Obsidian Terminal** (`components/ObsidianTerminal.tsx`): Primary interaction surface. Black background, monospace type, cyan accent. Houses chat, journal input, hunter briefings, and trade evaluation forms.
+- **Consciousness Log** (`components/ConsciousnessLog.tsx`): Side-panel real-time feed of XENO's internal observation state. Displays DataPulse commentary, Host psychological readings, and system-level annotations. Glitch-decay visual treatment.
 
 ---
 
-## IV. PROJECT STRUCTURE
+## 2. TECHNICAL SPECIFICATIONS
+
+| Layer              | Implementation              | Notes                                    |
+| :----------------- | :-------------------------- | :--------------------------------------- |
+| Framework          | Next.js 14.2.x (App Router) | SSR + API route colocation               |
+| Language           | TypeScript (strict mode)    | Full stack                               |
+| LLM Backend        | OpenAI GPT-4o-mini          | System prompt injection via chat API     |
+| Memory Index       | In-memory keyword store     | Volatile; pgvector migration planned     |
+| Telemetry Source   | Mock signal generator       | Swap for Helius/QuickNode RPC on deploy  |
+| Rendering          | React 18 + Tailwind CSS     | Terminal aesthetic; no component library  |
+
+---
+
+## 3. PROJECT STRUCTURE
 
 ```
 XENO-Protocol/
-鈹溾攢鈹€ app/
-鈹?  鈹溾攢鈹€ api/                    # chat, hunter/briefing, journal, trade/evaluate
-鈹?  鈹溾攢鈹€ chat/                   # /chat route
-鈹?  鈹斺攢鈹€ page.tsx                # Terminal + Consciousness Log
-鈹溾攢鈹€ components/                 # Obsidian Terminal, Hunter, Journal, ChatArea, ConsciousnessLog
-鈹溾攢鈹€ core/
-鈹?  鈹溾攢鈹€ engine/                 # Hunter (briefings), DataPulse (stream)
-鈹?  鈹溾攢鈹€ memory/                 # Store + relevance retrieval
-鈹?  鈹溾攢鈹€ personality/           # XENO system prompts
-鈹?  鈹斺攢鈹€ brain/                  # Placeholder (logic / emotion)
-鈹溾攢鈹€ hooks/                      # typewriter effect
-鈹溾攢鈹€ lib/                        # Third-party config
-鈹溾攢鈹€ types/                      # hunter, chat, journal, memory
-鈹斺攢鈹€ public/                     # Static assets
+|
+|-- app/
+|   |-- api/
+|   |   |-- chat/route.ts              # Dialogue endpoint with memory injection
+|   |   |-- journal/route.ts           # Trade journal evaluation endpoint
+|   |   |-- hunter/briefing/route.ts   # Hunter telemetry briefing endpoint
+|   |   +-- trade/evaluate/route.ts    # Token risk assessment endpoint
+|   |-- chat/page.tsx                  # Chat interface route
+|   |-- page.tsx                       # Root layout: terminal + consciousness log
+|   |-- layout.tsx                     # Global HTML shell
+|   +-- globals.css                    # Base styles
+|
+|-- components/
+|   |-- ChatArea.tsx                   # Message rendering and input
+|   |-- ConsciousnessLog.tsx           # Real-time internal monologue feed
+|   |-- HunterBriefing.tsx             # Telemetry briefing card
+|   |-- ObsidianTerminal.tsx           # Primary terminal shell
+|   +-- TradingJournal.tsx             # Journal entry and evaluation UI
+|
+|-- core/
+|   |-- engine/
+|   |   |-- hunter.ts                  # Solana anomaly scanner (mock)
+|   |   |-- stream.ts                  # DataPulse high-frequency emitter
+|   |   +-- index.ts                   # Engine barrel export
+|   |-- memory/
+|   |   |-- store.ts                   # In-memory persistence layer
+|   |   +-- index.ts                   # Memory barrel export
+|   |-- personality/
+|   |   |-- index.ts                   # Prompt barrel export
+|   |   |-- xeno-journal-prompt.ts     # Journal evaluation system prompt
+|   |   +-- xeno-trade-evaluate-prompt.ts  # Trade assessment system prompt
+|   +-- brain/
+|       +-- index.ts                   # Logic/emotion analysis (placeholder)
+|
+|-- hooks/
+|   |-- useTypewriter.ts              # Typewriter rendering hook
+|   +-- index.ts                      # Hook barrel export
+|
+|-- lib/                              # Third-party client configuration
+|-- types/                            # TypeScript interface definitions
+|   |-- chat.ts
+|   |-- hunter.ts
+|   |-- journal.ts
+|   +-- memory.ts
+|
++-- public/                           # Static assets (avatar, icons)
 ```
 
 ---
 
-## V. DEPLOYMENT & INITIALIZATION
+## 4. ENDPOINT REFERENCE
 
-### Environment Synchronization
+| Route                    | Method | Input                          | Output                                  |
+| :----------------------- | :----- | :----------------------------- | :-------------------------------------- |
+| `/api/chat`              | POST   | `{ message: string }`         | Narrative response with memory context  |
+| `/api/journal`           | POST   | `{ entry: string }`           | Survival probability + cold directive   |
+| `/api/hunter/briefing`   | GET    | --                             | Array of telemetry briefing objects     |
+| `/api/trade/evaluate`    | POST   | `{ token: string, risk: enum }` | Risk assessment with failure history  |
+
+---
+
+## 5. INITIALIZATION SEQUENCE
 
 ```bash
-# Clone via SSH (ensure key is whitelisted)
+# 1. Clone repository
 git clone git@github.com:XENO-Protocol/XENO.git
 cd XENO
 
-# Install dependencies
+# 2. Install dependencies
 npm install
 
-# Configure environment
-cp .env.local.example .env.local   # set OPENAI_API_KEY
+# 3. Configure runtime environment
+cp .env.local.example .env.local
+# Required: OPENAI_API_KEY
 
-# Run
+# 4. Start development server
 npm run dev
 ```
 
-Open `http://localhost:3000`. Sync. Or don't. The abyss is indifferent.
+Runtime available at `http://localhost:3000`.
 
 ---
 
-## VI. API REFERENCE
+## 6. LICENSE
 
-| Endpoint | Method | Purpose |
-| :--- | :--- | :--- |
-| `/api/chat` | POST | Dialogue with memory injection |
-| `/api/journal` | POST | Trading journal 鈫?survival probability |
-| `/api/hunter/briefing` | GET | Hunter briefings (mock Solana signals) |
-| `/api/trade/evaluate` | POST | Token + risk level 鈫?cold feedback |
+Proprietary. Unauthorized redistribution prohibited.
