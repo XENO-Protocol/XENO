@@ -1,0 +1,22 @@
+﻿# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+.next/
+out/
+build/
+*.tsbuildinfo
+
+# Env (do not commit keys)
+.env
+.env.local
+.env.*.local
+
+# Debug / IDE
+npm-debug.log*
+.DS_Store
+.idea
+.vscode
+*.log
