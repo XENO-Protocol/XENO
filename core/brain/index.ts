@@ -1,8 +1,12 @@
 /**
- * core/brain 鈥?Behavioral analysis utilities.
- * Provides lightweight heuristic functions for emotion detection
- * and decision-quality scoring without requiring LLM calls.
+ * core/brain -- Behavioral analysis utilities.
+ * Provides lightweight heuristic functions for emotion detection,
+ * decision-quality scoring, and host entropy calculation
+ * without requiring LLM calls.
  */
+
+export { calculateHostEntropy } from './entropy';
+export type { EntropyBand, EntropyResult } from './entropy';
 
 export type EmotionTag =
   | 'neutral'
