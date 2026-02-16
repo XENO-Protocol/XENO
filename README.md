@@ -11,11 +11,7 @@
 <p align="center"><strong>High-Throughput State Orchestration & Psychological Telemetry Stratum</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/SYSTEM-OPERATIONAL-00ff00?style=flat-square" alt="Status" />
-  <img src="https://img.shields.io/badge/BUILD-v0.1.5--ALPHA-white?style=flat-square" alt="Build" />
-  <img src="https://img.shields.io/badge/NODE-20.11.0_LTS-333333?style=flat-square" alt="Node" />
-  <img src="https://img.shields.io/badge/TS-5.6_STRICT-3178C6?style=flat-square" alt="TS" />
-  <img src="https://img.shields.io/badge/NEXT-14.2.15-000000?style=flat-square" alt="Next" />
+  <a href="https://www.xenoai.cc"><img src="https://img.shields.io/badge/WEBSITE-xenoai.cc-00ffcc?style=flat-square&logo=googlechrome&logoColor=white" alt="Website" /></a>
   <a href="https://x.com/XENO_Protocol"><img src="https://img.shields.io/badge/X-@XENO__Protocol-000000?style=flat-square&logo=x&logoColor=white" alt="X" /></a>
 </p>
 
