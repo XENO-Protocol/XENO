@@ -3,6 +3,7 @@ import { openai } from '@/lib/openai';
 import { XENO_SYSTEM_PROMPT } from '@/core/personality';
 import { getRelevantMemories } from '@/core/memory';
 import { calculateHostEntropy, type EmotionTag } from '@/core/brain';
+import { recordInteraction, getVaultHistorySummary } from '@/core/vault';
 
 const MEMORY_INJECTION_INSTRUCTION = `
 Use these only when they clearly apply to what the Host is saying or doing. Reference them coldly and briefly---e.g. "Last time you bought a cat-themed meme coin, you lost 20%. Are we repeating history, Host?" Do not list memories; weave at most one into your reply when it fits.`;
@@ -10,7 +11,6 @@ Use these only when they clearly apply to what the Host is saying or doing. Refe
 /**
  * In-memory sliding window of recent Host emotion states.
  * Used by the entropy calculator to detect emotional volatility.
- * Capped at 8 entries; oldest evicted on overflow.
  */
 const recentEmotions: EmotionTag[] = [];
 const MAX_EMOTION_HISTORY = 8;
@@ -48,14 +48,18 @@ export async function POST(req: NextRequest) {
 
     const memoryBlock =
       relevantMemories.length > 0
-        ? `\n\n## Relevant past experiences with the Host\n${relevantMemories.map((m) => `- ${m.content}`).join('\n')}${MEMORY_INJECTION_INSTRUCTION}`
+        ? '\n\n## Relevant past experiences with the Host\n' + relevantMemories.map((m) => '- ' + m.content).join('\n') + MEMORY_INJECTION_INSTRUCTION
         : '';
 
+    // -- Vault history retrieval (cross-session emotional awareness) --
+    const vaultHistory = getVaultHistorySummary(5);
+    const vaultBlock = vaultHistory ? '\n\n' + vaultHistory : '';
+
     // -- Dynamic prompt compilation --
-    // Base prompt + entropy modifier + memory context
     const systemContent =
       XENO_SYSTEM_PROMPT +
       entropy.promptModifier +
+      vaultBlock +
       memoryBlock;
 
     const fullMessages = [
@@ -63,7 +67,6 @@ export async function POST(req: NextRequest) {
       ...messages,
     ];
 
-    // Adjust temperature based on entropy: higher entropy = lower temperature (more deterministic, sharper)
     const temperature = entropy.band === 'CRITICAL' ? 0.4
       : entropy.band === 'VOLATILE' ? 0.5
       : entropy.band === 'ELEVATED' ? 0.6
@@ -78,6 +81,13 @@ export async function POST(req: NextRequest) {
     });
 
     const content = completion.choices[0]?.message?.content?.trim() ?? '';
+
+    // -- Persist interaction to the Obsidian Vault --
+    try {
+      recordInteraction(lastUserContent, content, entropy);
+    } catch (vaultErr) {
+      console.error('[Vault] Failed to record interaction:', vaultErr);
+    }
 
     return NextResponse.json({
       content,

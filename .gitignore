@@ -68,6 +68,9 @@ prisma/migrations/*.sql.bak
 # -- Docker (local dev) --
 docker-compose.override.yml
 
+# -- Obsidian Vault (encrypted Host telemetry) --
+.vault/
+
 # -- Miscellaneous --
 *.tgz
 *.pid
