@@ -1,1 +1,30 @@
-﻿{"name":"xeno-protocol","version":"0.1.0","private":true,"scripts":{"dev":"next dev","build":"next build","start":"next start","lint":"next lint"},"dependencies":{"next":"14.2.15","openai":"^4.73.0","react":"^18.3.1","react-dom":"^18.3.1"},"devDependencies":{"@types/node":"^22.9.0","@types/react":"^18.3.12","@types/react-dom":"^18.3.1","autoprefixer":"^10.4.20","postcss":"^8.4.47","tailwindcss":"^3.4.14","typescript":"^5.6.3"}}
+{
+  "name": "xeno-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "telemetry": "npx tsx server/ws-bridge.ts"
+  },
+  "dependencies": {
+    "next": "14.2.15",
+    "openai": "^4.73.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/ws": "^8.5.13",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3"
+  }
+}

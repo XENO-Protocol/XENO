@@ -3,15 +3,12 @@ import { openai } from '@/lib/openai';
 import { XENO_SYSTEM_PROMPT } from '@/core/personality';
 import { getRelevantMemories } from '@/core/memory';
 import { calculateHostEntropy, type EmotionTag } from '@/core/brain';
-import { recordInteraction, getVaultHistorySummary } from '@/core/vault';
+import { recordInteraction, getVaultHistorySummary, getInteractionCount } from '@/core/vault';
+import { updateEntropy, updateSyncRatio, updateMemoryNodes } from '@/core/engine/telemetry-bridge';
 
 const MEMORY_INJECTION_INSTRUCTION = `
-Use these only when they clearly apply to what the Host is saying or doing. Reference them coldly and briefly---e.g. "Last time you bought a cat-themed meme coin, you lost 20%. Are we repeating history, Host?" Do not list memories; weave at most one into your reply when it fits.`;
+Use these only when they clearly apply to what the Host is saying or doing. Reference them coldly and briefly. Do not list memories; weave at most one into your reply when it fits.`;
 
-/**
- * In-memory sliding window of recent Host emotion states.
- * Used by the entropy calculator to detect emotional volatility.
- */
 const recentEmotions: EmotionTag[] = [];
 const MAX_EMOTION_HISTORY = 8;
 
@@ -35,9 +32,7 @@ export async function POST(req: NextRequest) {
       messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
     };
     const messages = Array.isArray(body.messages) ? body.messages : [];
-
-    const lastUserContent =
-      messages.filter((m) => m.role === 'user').pop()?.content ?? '';
+    const lastUserContent = messages.filter((m) => m.role === 'user').pop()?.content ?? '';
 
     // -- Entropy computation --
     const entropy = calculateHostEntropy(lastUserContent, recentEmotions);
@@ -45,7 +40,6 @@ export async function POST(req: NextRequest) {
 
     // -- Memory retrieval --
     const relevantMemories = getRelevantMemories(lastUserContent, 5);
-
     const memoryBlock =
       relevantMemories.length > 0
         ? '\n\n## Relevant past experiences with the Host\n' + relevantMemories.map((m) => '- ' + m.content).join('\n') + MEMORY_INJECTION_INSTRUCTION
@@ -88,6 +82,11 @@ export async function POST(req: NextRequest) {
     } catch (vaultErr) {
       console.error('[Vault] Failed to record interaction:', vaultErr);
     }
+
+    // -- Feed Telemetry Bridge --
+    updateEntropy(entropy.score, entropy.band);
+    updateSyncRatio(content.length > 0 ? 0.95 : 0.5);
+    updateMemoryNodes(getInteractionCount());
 
     return NextResponse.json({
       content,
