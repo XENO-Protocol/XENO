@@ -5,9 +5,18 @@ import { getRelevantMemories } from '@/core/memory';
 import { calculateHostEntropy, type EmotionTag } from '@/core/brain';
 import { recordInteraction, getVaultHistorySummary, getInteractionCount } from '@/core/vault';
 import { updateEntropy, updateSyncRatio, updateMemoryNodes } from '@/core/engine/telemetry-bridge';
+import {
+  initializeIdentity,
+  signResponse,
+  getIdentityPromptModifier,
+  getIdentityState,
+  isSovereign,
+} from '@/core/identity';
 
-const MEMORY_INJECTION_INSTRUCTION = `
-Use these only when they clearly apply to what the Host is saying or doing. Reference them coldly and briefly. Do not list memories; weave at most one into your reply when it fits.`;
+const MEMORY_INJECTION_INSTRUCTION = '\nUse these only when they clearly apply to what the Host is saying or doing. Reference them coldly and briefly. Do not list memories; weave at most one into your reply when it fits.';
+
+const identityBootState = initializeIdentity();
+console.log('[Chat] Identity boot: mode=' + identityBootState.mode + ' fingerprint=' + identityBootState.fingerprint);
 
 const recentEmotions: EmotionTag[] = [];
 const MAX_EMOTION_HISTORY = 8;
@@ -45,14 +54,18 @@ export async function POST(req: NextRequest) {
         ? '\n\n## Relevant past experiences with the Host\n' + relevantMemories.map((m) => '- ' + m.content).join('\n') + MEMORY_INJECTION_INSTRUCTION
         : '';
 
-    // -- Vault history retrieval (cross-session emotional awareness) --
+    // -- Vault history (cross-session awareness) --
     const vaultHistory = getVaultHistorySummary(5);
     const vaultBlock = vaultHistory ? '\n\n' + vaultHistory : '';
+
+    // -- Identity prompt modifier (RESTRICTED_MODE injection if degraded) --
+    const identityModifier = getIdentityPromptModifier();
 
     // -- Dynamic prompt compilation --
     const systemContent =
       XENO_SYSTEM_PROMPT +
       entropy.promptModifier +
+      identityModifier +
       vaultBlock +
       memoryBlock;
 
@@ -76,24 +89,36 @@ export async function POST(req: NextRequest) {
 
     const content = completion.choices[0]?.message?.content?.trim() ?? '';
 
-    // -- Persist interaction to the Obsidian Vault --
+    // -- Persist to Obsidian Vault --
     try {
       recordInteraction(lastUserContent, content, entropy);
     } catch (vaultErr) {
       console.error('[Vault] Failed to record interaction:', vaultErr);
     }
 
+    // -- Sign response with Sovereign Identity --
+    const signedEnvelope = signResponse(content);
+
     // -- Feed Telemetry Bridge --
     updateEntropy(entropy.score, entropy.band);
     updateSyncRatio(content.length > 0 ? 0.95 : 0.5);
     updateMemoryNodes(getInteractionCount());
 
+    const identityInfo = getIdentityState();
+
     return NextResponse.json({
-      content,
+      content: signedEnvelope.content,
       entropy: {
         score: entropy.score,
         band: entropy.band,
         emotion: entropy.emotion,
+      },
+      identity: {
+        mode: identityInfo.mode,
+        fingerprint: signedEnvelope.fingerprint,
+        signature: signedEnvelope.signature,
+        nonce: signedEnvelope.nonce,
+        sovereign: isSovereign(),
       },
     });
   } catch (e) {
