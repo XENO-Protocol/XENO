@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "telemetry": "npx tsx server/ws-bridge.ts"
+    "telemetry": "npx tsx server/ws-bridge.ts",
+    "cli": "npx tsx cli/index.tsx"
   },
   "dependencies": {
+    "ink": "^5.1.0",
+    "ink-text-input": "^6.0.0",
     "next": "14.2.15",
     "openai": "^4.73.0",
     "react": "^18.3.1",
