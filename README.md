@@ -37,7 +37,7 @@
 
 The system enforces a **Zero-Empathy Logic Gate** across all interaction surfaces. Emotional resonance is intercepted, quantified, and reflected back as data. The protocol operates on the principle that survival in the abyss requires not warmth, but precision.
 
-This document constitutes the full technical specification for the XENO runtime: the Narrative Engine, the Obsidian Vault, the Telemetry Bridge, and all supporting subsystems.
+This document constitutes the full technical specification for the XENO runtime: the Narrative Engine, the Obsidian Vault, the Telemetry Bridge, the Sovereign Identity, the CLI Terminal, and all supporting subsystems.
 
 **Unauthorized access to this repository constitutes a breach of protocol.**
 
@@ -86,10 +86,11 @@ Before response generation, the Relevance Engine queries stored memory fragments
 The final system prompt is assembled from:
 1. Base personality matrix (immutable cold persona)
 2. Entropy modifier block (dynamic, per-interaction)
-3. Obsidian Vault history summary (cross-session awareness)
-4. Memory injection context (relevant past failures)
+3. Sovereign Identity modifier (RESTRICTED_MODE injection if identity is degraded)
+4. Obsidian Vault history summary (cross-session awareness)
+5. Memory injection context (relevant past failures)
 
-Output is synthesized via `GPT-4o-mini` with dynamically adjusted `temperature` and `max_tokens` constraints.
+Output is synthesized via `GPT-4o-mini` with dynamically adjusted `temperature` and `max_tokens` constraints. Every response is then signed with the Sovereign Identity's Ed25519 private key before delivery.
 ---
 
 ### 1.2 THE OBSIDIAN VAULT
@@ -175,15 +176,115 @@ Dual-layer data acquisition for market signal processing.
 
 - **Hunter Module** (`core/engine/hunter.ts`): Scans simulated Solana on-chain activity. Detects anomalies in token volume, liquidity pool creation, and whale transaction signatures. Outputs structured briefing objects formatted in XENO's cold analysis tone.
 - **DataPulse Stream** (`core/engine/stream.ts`): High-frequency transaction event emitter. Each pulse generates a timestamped market observation for the Consciousness Log. Designed for integration with live Solana RPC providers (Helius, QuickNode).
+---
+
+### 1.5 SOVEREIGN IDENTITY
+
+Ed25519 cryptographic identity layer for message authentication and Host binding.
+
+On first boot, the protocol generates a unique Ed25519 keypair bound to the Host machine. The private key is encrypted at rest using the same AES-256-GCM layer as the Obsidian Vault and stored at `.identity/sovereign.key` (gitignored). Every Narrative Engine response is signed before delivery. If the identity is corrupted, missing, or verification fails, the system reverts to **RESTRICTED_MODE**.
+
+**Cryptographic Specification:**
+
+| Parameter | Value |
+|:---|:---|
+| Algorithm | Ed25519 (RFC 8032) |
+| Key Format | DER-encoded (SPKI public, PKCS8 private) |
+| Signature Size | 64 bytes |
+| Storage Encryption | AES-256-GCM (same layer as Obsidian Vault) |
+| Fingerprint | SHA-256(publicKey), first 16 hex characters |
+| Machine Binding | SHA-256(hostname + arch + node_version) |
+| Anti-Replay | Monotonic nonce counter per session |
+
+**Handshake Protocol:**
+
+Every outbound message passes through the signing pipeline:
+
+```
+XENO Response --> signResponse(content)
+                       |
+                 [SOVEREIGN?]
+                  /         \
+                Yes          No
+                 |            |
+          Ed25519 sign   Empty signature
+          nonce++        fingerprint="RESTRICTED"
+                 |        content="[RESTRICTED] ..."
+                  \         /
+                   v       v
+               API Response JSON:
+               { content, identity: { mode, fingerprint, signature, nonce } }
+```
+
+**RESTRICTED_MODE Triggers:**
+- Fingerprint mismatch (file corruption or tampering)
+- Identity file decryption failure
+- Keypair generation failure
+- Signing operation exception
+- 3 consecutive verification failures (automatic degradation)
+
+In RESTRICTED_MODE, the system prompt is injected with a restriction directive: reduce response detail, omit historical references, and prepend `[RESTRICTED]` to all output. The abyss still speaks, but through a narrower aperture.
 
 ---
 
-### 1.5 INTERFACE LAYER
+### 1.6 INTERFACE LAYER
 
-Terminal-grade rendering surface. No decorative elements. No comfort.
+Terminal-grade rendering surfaces. No decorative elements. No comfort.
 
-- **Obsidian Terminal** (`components/ObsidianTerminal.tsx`): Primary interaction surface. Black background, monospace type, cyan accent. No rounded corners. No shadows. The terminal is the protocol.
+**Web Interface:**
+
+- **Obsidian Terminal** (`components/ObsidianTerminal.tsx`): Primary web interaction surface. Black background, monospace type, cyan accent. No rounded corners. No shadows. The terminal is the protocol.
 - **Consciousness Log** (`components/ConsciousnessLog.tsx`): Side-panel real-time feed of XENO's internal observation state. Displays DataPulse commentary, Host psychological readings, and entropy fluctuation annotations. Glitch-decay visual treatment.
+
+---
+
+### 1.7 CLI TERMINAL INTERFACE
+
+High-fidelity terminal UI built with `ink` (React for CLI). Split-screen layout with monochrome cyan theme.
+
+```
+npm run cli
+```
+
+**Layout Architecture:**
+
+```
++----------------------------------------------------+
+|                    XENO ASCII HEADER                |
+|  [#] SOVEREIGN | FP: a3f7b2c1 | HSS PROTOCOL      |
++============================+========================+
+|    DIALOGUE STREAM         | NARRATIVE ENGINE       |
+|                            | +-- ENTROPY ----------+|
+| [HOST] message...          | | [####------] 42.1%  ||
+| [XENO] response [sig..]   | | ELEVATED             ||
+|                            | +-- SYNC RATIO -------+|
+|                            | | 0.950 / 1.000       ||
+|                            | +-- OBSIDIAN VAULT ---+|
+|                            | | ACTIVE | NODES: 23  ||
+|                            | +-- HOST STATE -------+|
+|                            | | GREEDY | SOVEREIGN  ||
++============================+========================+
+| [HOST]> _                                           |
++----------------------------------------------------+
+| MSG: 3 | LATENCY: 842ms   * CONNECTED   ESC to exit|
++----------------------------------------------------+
+```
+
+**Components** (`cli/components/`):
+
+| Component | Function |
+|:---|:---|
+| `Header.tsx` | ASCII logo, Sovereign/Restricted status, fingerprint display |
+| `DialogueArea.tsx` | Scrolling dialogue stream with role-colored messages, signature tags |
+| `MetricsSidebar.tsx` | Real-time Entropy bar, Sync Ratio, Vault status, Pulse throughput, Host emotion |
+| `InputBar.tsx` | Blinking cursor input, submit on Enter, locked during processing |
+| `StatusBar.tsx` | Message count, API latency, connection status, exit hint |
+
+**Operating Modes:**
+
+- **API Mode** (OPENAI_API_KEY set + `npm run dev` active): Full Narrative Engine synthesis via `http://localhost:3000/api/chat`
+- **Local Mode** (no API key): Entropy Calibration + Vault + Sovereign Identity only, local analysis output
+- **Degraded Fallback**: Automatic switch to local signing when API is unreachable
 ---
 
 ## SECTION 2 &mdash; TECHNICAL SPECIFICATIONS
@@ -194,12 +295,14 @@ Terminal-grade rendering surface. No decorative elements. No comfort.
 | Language | TypeScript 5.6+ (strict mode) |
 | Framework | Next.js 14.2.x (App Router) |
 | LLM Backend | OpenAI GPT-4o-mini |
-| Encryption | AES-256-GCM (PBKDF2-SHA512 key derivation) |
-| Identity Handshake | Ed25519 (planned: cryptographic Host binding) |
+| Encryption (Vault) | AES-256-GCM (PBKDF2-SHA512, 100K iterations) |
+| Identity Signing | Ed25519 (RFC 8032), DER-encoded keypair, machine-bound |
+| Identity Storage | AES-256-GCM encrypted `.identity/sovereign.key` |
 | Memory Index | In-memory keyword store (migration path: PostgreSQL + pgvector) |
 | Telemetry Transport | WebSocket (ws) + Server-Sent Events |
 | Telemetry Tick Rate | 500ms |
-| Rendering | React 18 + Tailwind CSS (terminal aesthetic) |
+| Web Rendering | React 18 + Tailwind CSS (terminal aesthetic) |
+| CLI Rendering | ink 5.x (React for CLI, split-screen layout) |
 | Package Manager | npm |
 
 ---
@@ -211,7 +314,7 @@ XENO-Protocol/
 |
 |-- app/
 |   |-- api/
-|   |   |-- chat/route.ts                   # Dialogue synthesis with entropy + vault + memory
+|   |   |-- chat/route.ts                   # Dialogue synthesis + entropy + vault + identity signing
 |   |   |-- journal/route.ts                # Trade journal survival probability assessment
 |   |   |-- hunter/briefing/route.ts        # Hunter telemetry briefing endpoint
 |   |   |-- trade/evaluate/route.ts         # Token risk assessment with failure history
@@ -221,7 +324,17 @@ XENO-Protocol/
 |   |-- layout.tsx                          # Global HTML shell
 |   +-- globals.css                         # Base styles
 |
-|-- components/
+|-- cli/                                    # ink-based CLI terminal interface
+|   |-- index.tsx                           # CLI entry point
+|   |-- app.tsx                             # Main app: split-screen layout + state orchestration
+|   +-- components/
+|       |-- Header.tsx                      # ASCII logo + identity status bar
+|       |-- DialogueArea.tsx                # Scrolling dialogue stream
+|       |-- MetricsSidebar.tsx              # Real-time Narrative Engine metrics panel
+|       |-- InputBar.tsx                    # Host message input with blinking cursor
+|       +-- StatusBar.tsx                   # Connection, latency, message count
+|
+|-- components/                             # Web UI components
 |   |-- ChatArea.tsx                        # Message rendering and input
 |   |-- ConsciousnessLog.tsx                # Real-time internal monologue feed
 |   |-- HunterBriefing.tsx                  # Telemetry briefing card
@@ -245,10 +358,13 @@ XENO-Protocol/
 |   |-- brain/
 |   |   |-- index.ts                        # Emotion detection + decision scoring
 |   |   +-- entropy.ts                      # Host Entropy Calculator H(x)
-|   +-- vault/
-|       |-- index.ts                        # Obsidian Vault controller
-|       |-- emotional-tags.ts               # Emotional Tag Extraction Engine
-|       +-- timeline.ts                     # Time-series emotional state log
+|   |-- vault/
+|   |   |-- index.ts                        # Obsidian Vault controller
+|   |   |-- emotional-tags.ts               # Emotional Tag Extraction Engine
+|   |   +-- timeline.ts                     # Time-series emotional state log
+|   +-- identity/
+|       |-- index.ts                        # Sovereign Identity controller + RESTRICTED_MODE
+|       +-- handshake.ts                    # Ed25519 message signing & verification protocol
 |
 |-- server/
 |   +-- ws-bridge.ts                        # Standalone WebSocket telemetry server
@@ -259,7 +375,8 @@ XENO-Protocol/
 |
 |-- lib/
 |   |-- openai.ts                           # Shared OpenAI client instance
-|   +-- crypto.ts                           # AES-256-GCM encryption utilities
+|   |-- crypto.ts                           # AES-256-GCM encryption utilities
+|   +-- identity.ts                         # Ed25519 keypair generation, signing, verification
 |
 |-- types/
 |   |-- chat.ts                             # Chat message types
@@ -267,22 +384,42 @@ XENO-Protocol/
 |   |-- journal.ts                          # Journal types
 |   |-- memory.ts                           # Memory types
 |   |-- vault.ts                            # Obsidian Vault types
-|   +-- telemetry.ts                        # Telemetry Bridge types
+|   |-- telemetry.ts                        # Telemetry Bridge types
+|   +-- identity.ts                         # Sovereign Identity types
 |
 +-- public/                                 # Static assets (avatar, banner, logo)
 ```
-
 ---
 
 ## SECTION 4 &mdash; ENDPOINT SPECIFICATION
 
 | Route | Method | Payload | Response |
 |:---|:---|:---|:---|
-| `/api/chat` | POST | `{ messages: Message[] }` | Narrative response + entropy data |
+| `/api/chat` | POST | `{ messages: Message[] }` | Signed narrative response + entropy + identity envelope |
 | `/api/journal` | POST | `{ entry: string }` | Survival probability + cold directive |
 | `/api/hunter/briefing` | GET | -- | Array of telemetry briefing objects |
 | `/api/trade/evaluate` | POST | `{ token: string, risk: enum }` | Risk assessment with failure pattern overlay |
 | `/api/telemetry/stream` | GET | `?token=` (optional) | SSE stream: frames, logs, heartbeats |
+
+**Chat Response Envelope:**
+
+```json
+{
+  "content": "The pattern repeats, Host.",
+  "entropy": {
+    "score": 0.42,
+    "band": "ELEVATED",
+    "emotion": "greedy"
+  },
+  "identity": {
+    "mode": "SOVEREIGN",
+    "fingerprint": "a3f7b2c1e9d04816",
+    "signature": "3045022100...",
+    "nonce": 42,
+    "sovereign": true
+  }
+}
+```
 
 **WebSocket Protocol** (`ws://localhost:9100`):
 
@@ -293,6 +430,7 @@ XENO-Protocol/
 4. Server streams:  TelemetryMessage frames at 500ms intervals
 5. Client sends:   { "type": "ping" }  -->  Server responds with heartbeat
 ```
+
 ---
 
 ## SECTION 5 &mdash; INITIALIZATION RITUAL
@@ -333,11 +471,15 @@ npm run dev
 
 # STEP 5: Activate the Telemetry Bridge (separate terminal)
 npm run telemetry
+
+# STEP 6 (OPTIONAL): Launch the CLI Terminal Interface
+npm run cli
 ```
 
 ```
 [SYSTEM] Runtime active at http://localhost:3000
 [SYSTEM] Telemetry Bridge online at ws://localhost:9100
+[SYSTEM] Sovereign Identity: SOVEREIGN | Fingerprint: a3f7b2c1e9d04816
 [SYSTEM] Obsidian Vault: .vault/obsidian.enc (auto-created on first interaction)
 [SYSTEM] Entropy Calibration: STANDBY
 [SYSTEM] Awaiting Host contact...
