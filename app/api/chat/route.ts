@@ -12,11 +12,28 @@ import {
   getIdentityState,
   isSovereign,
 } from '@/core/identity';
+import {
+  initializeEvolution,
+  recordHostActivity,
+  getReflectionPromptBlock,
+  getEvolutionState,
+} from '@/core/evolution';
 
-const MEMORY_INJECTION_INSTRUCTION = '\nUse these only when they clearly apply to what the Host is saying or doing. Reference them coldly and briefly. Do not list memories; weave at most one into your reply when it fits.';
+const MEMORY_INJECTION_INSTRUCTION = `
+Use these only when they clearly apply to what the Host is saying or doing. Reference them coldly and briefly---e.g. "Last time you bought a cat-themed meme coin, you lost 20%. Are we repeating history, Host?" Do not list memories; weave at most one into your reply when it fits.`;
 
+/**
+ * In-memory sliding window of recent Host emotion states.
+ * Used by the entropy calculator to detect emotional volatility.
+ * Capped at 8 entries; oldest evicted on overflow.
+ */
+/** Initialize Sovereign Identity on module load (first boot generates keypair) */
 const identityBootState = initializeIdentity();
-console.log('[Chat] Identity boot: mode=' + identityBootState.mode + ' fingerprint=' + identityBootState.fingerprint);
+console.log(`[Chat] Identity boot: mode=${identityBootState.mode} fingerprint=${identityBootState.fingerprint}`);
+
+/** Initialize Autonomous Evolution engine */
+initializeEvolution();
+console.log('[Chat] Autonomous Evolution engine initialized.');
 
 const recentEmotions: EmotionTag[] = [];
 const MAX_EMOTION_HISTORY = 8;
@@ -41,7 +58,16 @@ export async function POST(req: NextRequest) {
       messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
     };
     const messages = Array.isArray(body.messages) ? body.messages : [];
-    const lastUserContent = messages.filter((m) => m.role === 'user').pop()?.content ?? '';
+
+    const lastUserContent =
+      messages.filter((m) => m.role === 'user').pop()?.content ?? '';
+
+    // -- Record Host activity (resets silence timer, suspends evolution cron) --
+    recordHostActivity();
+
+    // -- Drain pending Shadow Reflections if Host was absent --
+    const reflectionBlock = getReflectionPromptBlock();
+    const hadReflections = reflectionBlock.length > 0;
 
     // -- Entropy computation --
     const entropy = calculateHostEntropy(lastUserContent, recentEmotions);
@@ -49,23 +75,28 @@ export async function POST(req: NextRequest) {
 
     // -- Memory retrieval --
     const relevantMemories = getRelevantMemories(lastUserContent, 5);
+
     const memoryBlock =
       relevantMemories.length > 0
-        ? '\n\n## Relevant past experiences with the Host\n' + relevantMemories.map((m) => '- ' + m.content).join('\n') + MEMORY_INJECTION_INSTRUCTION
+        ? `\n\n## Relevant past experiences with the Host\n${relevantMemories.map((m) => `- ${m.content}`).join('\n')}${MEMORY_INJECTION_INSTRUCTION}`
         : '';
 
-    // -- Vault history (cross-session awareness) --
+    // -- Vault history retrieval (cross-session emotional awareness) --
     const vaultHistory = getVaultHistorySummary(5);
-    const vaultBlock = vaultHistory ? '\n\n' + vaultHistory : '';
+    const vaultBlock = vaultHistory ? `\n\n${vaultHistory}` : '';
 
     // -- Identity prompt modifier (RESTRICTED_MODE injection if degraded) --
     const identityModifier = getIdentityPromptModifier();
+
+    // -- Shadow Reflections injection (from autonomous evolution) --
+    const evolutionBlock = reflectionBlock ? `\n\n${reflectionBlock}` : '';
 
     // -- Dynamic prompt compilation --
     const systemContent =
       XENO_SYSTEM_PROMPT +
       entropy.promptModifier +
       identityModifier +
+      evolutionBlock +
       vaultBlock +
       memoryBlock;
 
@@ -89,7 +120,7 @@ export async function POST(req: NextRequest) {
 
     const content = completion.choices[0]?.message?.content?.trim() ?? '';
 
-    // -- Persist to Obsidian Vault --
+    // -- Persist interaction to the Obsidian Vault --
     try {
       recordInteraction(lastUserContent, content, entropy);
     } catch (vaultErr) {
@@ -105,6 +136,7 @@ export async function POST(req: NextRequest) {
     updateMemoryNodes(getInteractionCount());
 
     const identityInfo = getIdentityState();
+    const evolutionInfo = getEvolutionState();
 
     return NextResponse.json({
       content: signedEnvelope.content,
@@ -119,6 +151,12 @@ export async function POST(req: NextRequest) {
         signature: signedEnvelope.signature,
         nonce: signedEnvelope.nonce,
         sovereign: isSovereign(),
+      },
+      evolution: {
+        reflectionsDelivered: hadReflections,
+        pendingReflections: evolutionInfo.pendingReflections,
+        totalGenerated: evolutionInfo.totalReflectionsGenerated,
+        cronActive: evolutionInfo.active,
       },
     });
   } catch (e) {
