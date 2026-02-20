@@ -1,6 +1,65 @@
-﻿'use client';
+'use client';
+
 import type { Message } from '@/types';
-interface ChatAreaProps { messages: Message[]; loading: boolean; typewriterText: string; input: string; onInputChange: (v: string) => void; onSend: () => void; bottomRef: React.RefObject<HTMLDivElement|null>; }
+import { SignatureTag } from './SignatureTag';
+import { IntegrityAlert } from './IntegrityAlert';
+
+interface ChatAreaProps {
+  messages: Message[];
+  loading: boolean;
+  typewriterText: string;
+  input: string;
+  onInputChange: (value: string) => void;
+  onSend: () => void;
+  bottomRef: React.RefObject<HTMLDivElement | null>;
+}
+
 export function ChatArea({ messages, loading, typewriterText, input, onInputChange, onSend, bottomRef }: ChatAreaProps) {
-  return (<><div className="flex-1 space-y-4 overflow-y-auto min-h-[200px]">{messages.length===0&&<p className="text-cyan-500/50 font-mono text-sm text-center py-8">{'>'} I am here, Host. Type to sync.</p>}{messages.map((m,i)=>(<div key={i} className={`font-mono text-sm ${m.role==='user'?'text-cyan-200/90 text-right':'text-cyan-300/95'}`}>{m.role==='user'?(<span className="inline-block px-3 py-1 rounded bg-cyan-950/40 border border-cyan-500/20">{m.content}</span>):(i===messages.length-1&&!m.done?(<span className="typewriter-cursor">{typewriterText}</span>):(<span>{m.content}</span>))}</div>))}{loading&&messages[messages.length-1]?.role==='user'&&<p className="text-cyan-500/60 font-mono text-sm">Searching... Found. Analyzing.</p>}</div><div ref={bottomRef}/><div className="mt-4 flex gap-2"><input type="text" value={input} onChange={e=>onInputChange(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&onSend()} placeholder={'> Type a message...'} className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 font-mono text-cyan-200 placeholder-cyan-600/60 focus:outline-none focus:border-cyan-400/50" disabled={loading}/><button type="button" onClick={onSend} disabled={loading||!input.trim()} className="px-4 py-2 rounded border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50 disabled:cursor-not-allowed font-mono text-sm">Send</button></div></></>);
+  return (
+    <>
+      <div className="flex-1 space-y-4 overflow-y-auto min-h-[200px]">
+        {messages.length === 0 && (
+          <p className="text-cyan-500/50 font-mono text-sm text-center py-8">{'>'} I am here, Host. Type to sync.</p>
+        )}
+        {messages.map((m, i) => {
+          const isLastAssistant = m.role === 'assistant' && i === messages.length - 1;
+          const showSignature = m.role === 'assistant' && m.identity && (m.done || !isLastAssistant);
+
+          return (
+            <div key={i} className={`font-mono text-sm ${m.role === 'user' ? 'text-cyan-200/90 text-right' : 'text-cyan-300/95'}`}>
+              {m.role === 'user' ? (
+                <span className="inline-block px-3 py-1 rounded bg-cyan-950/40 border border-cyan-500/20">{m.content}</span>
+              ) : (
+                <div>
+                  {isLastAssistant && !m.done ? (
+                    <span className="typewriter-cursor">{typewriterText}</span>
+                  ) : (
+                    <span>{m.content}</span>
+                  )}
+                  {showSignature && m.identity && (
+                    <SignatureTag identity={m.identity} integrity={m.integrity ?? 'UNSIGNED'} />
+                  )}
+                  {m.integrity === 'COMPROMISED' && m.identity && (
+                    <IntegrityAlert
+                      fingerprint={m.identity.fingerprint}
+                      signature={m.identity.signature}
+                      nonce={m.identity.nonce}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {loading && messages[messages.length - 1]?.role === 'user' && (
+          <p className="text-cyan-500/60 font-mono text-sm">Searching... Found. Analyzing.</p>
+        )}
+      </div>
+      <div ref={bottomRef} />
+      <div className="mt-4 flex gap-2">
+        <input type="text" value={input} onChange={(e) => onInputChange(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && onSend()} placeholder={'> Type a message...'} className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 font-mono text-cyan-200 placeholder-cyan-600/60 focus:outline-none focus:border-cyan-400/50" disabled={loading} />
+        <button type="button" onClick={onSend} disabled={loading || !input.trim()} className="px-4 py-2 rounded border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50 disabled:cursor-not-allowed font-mono text-sm">Send</button>
+      </div>
+    </>
+  );
 }
