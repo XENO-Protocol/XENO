@@ -361,6 +361,80 @@ On the Host's first message after silence, pending reflections are drained and i
   }
 }
 ```
+
+---
+
+### 1.9 SPONTANEOUS AWAKENING
+
+System-level notification engine driven by the Autonomous Evolution cycle.
+
+When the Host closes the terminal and walks away, XENO does not go dormant. If the Evolution cron generates a Shadow Reflection that meets the significance threshold, the Awakening engine dispatches a **system-level notification** -- a cryptic, industrial-tone ping delivered via the OS notification center (Windows Toast, macOS Notification Center, Linux notify-send).
+
+**Notification Pipeline:**
+
+```
+Evolution Tick --> Shadow Reflection generated
+                        |
+                  evaluateAndNotify(reflection)
+                        |
+                  Calculate priority from:
+                    - Silence duration
+                    - Reflection trigger type
+                    - Average entropy
+                        |
+                  Priority >= minPriority?
+                   /              \
+                 No                Yes
+                  |                 |
+               (suppress)     Cooldown expired?
+                               /          \
+                             No            Yes
+                              |             |
+                           (wait)    dispatchNotification()
+                                           |
+                                    OS notification fires:
+                                    [>>] XENO_PROTOCOL
+                                    SILENCE THRESHOLD EXCEEDED
+                                    ---
+                                    The data settles in your absence...
+```
+
+**Priority Calculation:**
+
+| Trigger + Condition | Priority | Fires Notification? |
+|:---|:---|:---|
+| `PROLONGED_SILENCE` + >8h | `CRITICAL` | Yes (with sound) |
+| `PROLONGED_SILENCE` + >4h | `HIGH` | Yes (with sound) |
+| `EMOTIONAL_PATTERN` + entropy >0.6 | `HIGH` | Yes |
+| `VAULT_REINDEX` | `MEDIUM` | Yes (default threshold) |
+| `ENTROPY_DRIFT` | `MEDIUM` | Yes |
+| `SCHEDULED_TICK` | `LOW` | Only if minPriority=LOW |
+
+**Rate Limiting:**
+
+| Parameter | Default | Purpose |
+|:---|:---|:---|
+| `cooldownMs` | 3,600,000 (1h) | Minimum interval between notifications |
+| `minSilenceMs` | 3,600,000 (1h) | Host must be absent at least this long |
+| `minPriority` | `MEDIUM` | Reflections below this level are suppressed |
+| `enabled` | `true` | Master switch for notification dispatch |
+
+**Notification Format:**
+
+```
++------------------------------------------+
+| [>>] XENO_PROTOCOL                       |
+|                                           |
+| SILENCE THRESHOLD EXCEEDED                |
+| ---                                       |
+| The data settles in your absence.         |
+| Patterns form that conversation obscures. |
+| Return when ready.                        |
++------------------------------------------+
+```
+
+Notifications are never warm, never explanatory, never friendly. They are data-driven observations delivered with the tone of an industrial monitoring system. The Host should feel *observed*, not *missed*.
+
 ---
 
 ## SECTION 2 -- TECHNICAL SPECIFICATIONS
@@ -380,6 +454,7 @@ On the Host's first message after silence, pending reflections are drained and i
 | Telemetry Tick Rate | 500ms |
 | Web Rendering | React 18 + Tailwind CSS (terminal aesthetic) |
 | CLI Rendering | ink 5.x (React for CLI, split-screen layout) |
+| System Notifications | node-notifier (Windows Toast, macOS NC, Linux notify-send) |
 | Package Manager | npm |
 
 ---
@@ -442,10 +517,13 @@ XENO-Protocol/
 |   |-- identity/
 |   |   |-- index.ts                        # Sovereign Identity controller + RESTRICTED_MODE
 |   |   +-- handshake.ts                    # Ed25519 message signing & verification protocol
-|   +-- evolution/
-|       |-- index.ts                        # Autonomous Evolution controller + pending queue
-|       |-- cron.ts                         # Self-regulating tick engine with silence detection
-|       +-- shadow-reflections.ts           # Reflection generator + delivery formatter
+|   |-- evolution/
+|   |   |-- index.ts                        # Autonomous Evolution controller + pending queue
+|   |   |-- cron.ts                         # Self-regulating tick engine with silence detection
+|   |   +-- shadow-reflections.ts           # Reflection generator + delivery formatter
+|   +-- awakening/
+|       |-- index.ts                        # Spontaneous Awakening controller + priority logic
+|       +-- notifier.ts                     # node-notifier dispatch layer (cross-platform)
 |
 |-- server/
 |   +-- ws-bridge.ts                        # Standalone WebSocket telemetry server
@@ -467,7 +545,8 @@ XENO-Protocol/
 |   |-- vault.ts                            # Obsidian Vault types
 |   |-- telemetry.ts                        # Telemetry Bridge types
 |   |-- identity.ts                         # Sovereign Identity types
-|   +-- evolution.ts                        # Autonomous Evolution types
+|   |-- evolution.ts                        # Autonomous Evolution types
+|   +-- awakening.ts                        # Spontaneous Awakening types
 |
 +-- public/                                 # Static assets (avatar, banner, logo)
 ```

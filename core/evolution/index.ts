@@ -6,8 +6,9 @@
  *   2. When silence exceeds threshold, activates the cron engine
  *   3. Each tick: re-indexes the Obsidian Vault, generates a Shadow Reflection
  *   4. Reflections accumulate in a pending queue
- *   5. On next Host handshake: drains the queue into the system prompt
- *   6. Cron suspends until next silence period
+ *   5. Significant reflections trigger Spontaneous Awakening notifications
+ *   6. On next Host handshake: drains the queue into the system prompt
+ *   7. Cron suspends until next silence period
  *
  * The evolution engine runs within the same Node.js process.
  * It is initialized once during module load and monitors
@@ -16,6 +17,7 @@
 
 import { loadVault, getVaultStats } from '@/core/vault';
 import { generateShadowReflection, formatReflectionsForDelivery } from './shadow-reflections';
+import { evaluateAndNotify, initializeAwakening } from '@/core/awakening';
 import {
   onTick,
   start as startCron,
@@ -59,6 +61,10 @@ function handleTick(cycleCount: number): void {
   console.log(
     `[Evolution] Tick #${cycleCount} | Reflection: "${reflection.content.slice(0, 60)}..." | Pending: ${pendingReflections.length} | Silence: ${silenceMin}m`
   );
+
+  evaluateAndNotify(reflection).catch((err) => {
+    console.error('[Evolution] Awakening notification error:', err);
+  });
 }
 
 /**
@@ -86,6 +92,7 @@ export function initializeEvolution(overrides?: Partial<EvolutionConfig>): void 
   if (overrides) setCronConfig(overrides);
 
   onTick(handleTick);
+  initializeAwakening();
 
   if (silenceCheckHandle) clearInterval(silenceCheckHandle);
   silenceCheckHandle = setInterval(silenceMonitor, 60_000);
