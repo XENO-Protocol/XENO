@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="public/xeno-banner.png" alt="XENO_PROTOCOL Banner" width="100%" />
 </p>
 
@@ -437,6 +437,35 @@ Notifications are never warm, never explanatory, never friendly. They are data-d
 
 ---
 
+### 1.10 NODE IDENTITY CERTIFICATE
+
+Exportable sovereign node credential rendered as a restricted military document.
+
+The Certificate module extracts the Sovereign Identity's cryptographic metadata and formats it into a structured, human-readable document resembling a vintage mainframe readout or classified military dossier. The certificate is displayed via the CLI with a slow, rhythmic typing animation and exported as `strata_identity.xeno` in the project root.
+
+**Certificate Data Fields:**
+
+| Field | Source | Description |
+|:---|:---|:---|
+| Sovereign Node ID | `SHA-256(fingerprint)[0:6] mod 1000` | Three-digit node identifier (e.g., `#024`) |
+| Ed25519 Public Key | `.identity/sovereign.key` | Full SPKI/DER hex-encoded public key |
+| Fingerprint | `SHA-256(publicKey)[0:16]` | 16-character identity fingerprint |
+| Activation Timestamp | `keypair.createdAt` | UNIX epoch + ISO-8601 of keypair generation |
+| Machine Binding | `hostBinding.machineId` | Truncated SHA-256 hardware binding hash |
+| Boot Count | `hostBinding.bootCount` | Total system initialization count |
+| Integrity Checksum | `SHA-256(pubKey + fingerprint + timestamp)` | Certificate integrity verification hash |
+
+**CLI Command:**
+
+```bash
+npm run identity
+npx tsx cli/index.tsx --identity
+```
+
+The certificate is exported as `strata_identity.xeno` -- a JSON file containing all certificate fields plus the full ASCII rendering. The file is never transmitted over the network. It exists only on the Host's local filesystem. Duplication constitutes a protocol breach.
+
+---
+
 ## SECTION 2 -- TECHNICAL SPECIFICATIONS
 
 | Specification | Value |
@@ -477,7 +506,9 @@ XENO-Protocol/
 |   +-- globals.css                         # Base styles
 |
 |-- cli/                                    # ink-based CLI terminal interface
-|   |-- index.tsx                           # CLI entry point
+|   |-- index.tsx                           # CLI entry point (--identity flag routing)
+|   |-- commands/
+|   |   +-- identity.ts                     # xeno --identity: certificate display + export
 |   |-- app.tsx                             # Main app: split-screen layout + state orchestration
 |   +-- components/
 |       |-- Header.tsx                      # ASCII logo + identity status bar
@@ -516,7 +547,8 @@ XENO-Protocol/
 |   |   +-- timeline.ts                     # Time-series emotional state log
 |   |-- identity/
 |   |   |-- index.ts                        # Sovereign Identity controller + RESTRICTED_MODE
-|   |   +-- handshake.ts                    # Ed25519 message signing & verification protocol
+|   |   |-- handshake.ts                    # Ed25519 message signing & verification protocol
+|   |   +-- certificate.ts                  # Node Identity Certificate generator + ASCII renderer
 |   |-- evolution/
 |   |   |-- index.ts                        # Autonomous Evolution controller + pending queue
 |   |   |-- cron.ts                         # Self-regulating tick engine with silence detection
@@ -641,6 +673,9 @@ npm run telemetry
 
 # STEP 6 (OPTIONAL): Launch the CLI Terminal Interface
 npm run cli
+
+# STEP 7 (OPTIONAL): Display and export Node Identity Certificate
+npm run identity
 ```
 
 ```

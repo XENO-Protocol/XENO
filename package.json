@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "xeno-protocol",
   "version": "0.1.0",
   "private": true,
@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "telemetry": "npx tsx server/ws-bridge.ts",
-    "cli": "npx tsx cli/index.tsx"
+    "cli": "npx tsx cli/index.tsx",
+    "identity": "npx tsx cli/index.tsx --identity"
   },
   "dependencies": {
     "ink": "^5.1.0",
