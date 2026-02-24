@@ -7,3 +7,4 @@ export * from './telemetry';
 export * from './identity';
 export * from './evolution';
 export * from './awakening';
+export * from './resonance';

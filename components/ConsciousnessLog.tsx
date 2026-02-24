@@ -39,8 +39,12 @@ function pickRandom<T>(arr: T[], exclude?: T): T {
 export function ConsciousnessLog() {
   const [lines, setLines] = useState<string[]>(() => ['> System online. XENO consciousness active.', '> Observing Host. Observing market.']);
   const [glitchActive, setGlitchActive] = useState(false);
+  const [resonanceMode, setResonanceMode] = useState<'ENVIRONMENTAL_AWARENESS' | 'PASSIVE'>('PASSIVE');
+  const [resonanceStatus, setResonanceStatus] = useState<'OBSERVING_HOST' | 'STANDBY'>('STANDBY');
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastThought = useRef<string | null>(null);
+  const lastFragmentRef = useRef<string | null>(null);
+  const lastModeRef = useRef<'ENVIRONMENTAL_AWARENESS' | 'PASSIVE'>('PASSIVE');
   const glitchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -66,6 +70,53 @@ export function ConsciousnessLog() {
     return () => { clearInterval(pulseInterval); if (glitchTimeoutRef.current) clearTimeout(glitchTimeoutRef.current); };
   }, []);
 
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/resonance/state', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const mode = data.mode === 'ENVIRONMENTAL_AWARENESS' ? 'ENVIRONMENTAL_AWARENESS' : 'PASSIVE';
+        const status = data.status === 'OBSERVING_HOST' ? 'OBSERVING_HOST' : 'STANDBY';
+        setResonanceMode(mode);
+        setResonanceStatus(status);
+
+        if (lastModeRef.current !== mode) {
+          lastModeRef.current = mode;
+          setLines((prev) => {
+            const next = [...prev, `> [RESONANCE] MODE: ${mode} | STATUS: ${status}`];
+            return next.length > 32 ? next.slice(-32) : next;
+          });
+        }
+
+        if (data.ingestingFragment && typeof data.lastFragment === 'string') {
+          const fragment = data.lastFragment;
+          if (lastFragmentRef.current !== fragment) {
+            lastFragmentRef.current = fragment;
+            setLines((prev) => {
+              const next = [
+                ...prev,
+                '> [INGESTING_FRAGMENT......]',
+                `> [FRAGMENT] ${fragment}`,
+              ];
+              return next.length > 32 ? next.slice(-32) : next;
+            });
+            setGlitchActive(true);
+            if (glitchTimeoutRef.current) clearTimeout(glitchTimeoutRef.current);
+            glitchTimeoutRef.current = setTimeout(() => setGlitchActive(false), 220);
+          }
+        }
+      } catch {
+        // Keep observer non-intrusive.
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, [lines]);
 
   return (
@@ -79,11 +130,15 @@ export function ConsciousnessLog() {
         {lines.map((line, i) => (
           <div key={`${i}-${line}`} className={`consciousness-line ${glitchActive && i === lines.length - 1 ? 'glitch-active' : ''}`}>{line}</div>
         ))}
-        <span className="consciousness-cursor mt-0.5 inline-block animate-consciousness-flicker text-cyan-400" aria-hidden>|</span>
+        <span className="consciousness-cursor mt-0.5 inline-block animate-consciousness-flicker text-cyan-400" aria-hidden={true}>|</span>
       </div>
       <div className="relative z-10 flex items-center gap-2 border-t border-cyan-500/20 bg-cyan-950/30 px-3 py-1.5 font-mono text-[10px] text-cyan-600">
         <span className="consciousness-flicker">LIVE</span>
         <span>{lines.length} lines</span>
+        <span className="opacity-40">|</span>
+        <span>{resonanceMode}</span>
+        <span className="opacity-40">|</span>
+        <span>{resonanceStatus}</span>
       </div>
     </aside>
   );

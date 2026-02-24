@@ -1,4 +1,4 @@
-﻿/**
+/**
  * core/identity/certificate.ts -- Node Identity Certificate
  *
  * Generates a structured certificate containing the Sovereign Node ID,
@@ -12,7 +12,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
-import { initializeIdentity, getIdentityState, getPublicKey, getFingerprint } from './index';
+import { initializeIdentity } from './index';
 import type { IdentityFile } from '@/types/identity';
 import { decrypt } from '@/lib/crypto';
 import type { EncryptedEnvelope } from '@/types/vault';
@@ -31,6 +31,33 @@ export interface CertificateData {
   bootCount: number;
   mode: string;
   protocolVersion: string;
+}
+
+interface CertificateMedal {
+  id: string;
+  tag: string;
+  awardedAt: number;
+  awardedISO: string;
+  label: string;
+}
+
+interface CertificatePayload {
+  _header: string;
+  _format: string;
+  _generatedAt: string;
+  certificate: {
+    nodeId: string;
+    publicKey: string;
+    fingerprint: string;
+    activationTimestamp: number;
+    activationISO: string;
+    machineId: string;
+    bootCount: number;
+    mode: string;
+    protocolVersion: string;
+  };
+  medals?: CertificateMedal[];
+  asciiRendering: string;
 }
 
 function deriveNodeId(fingerprint: string): string {
@@ -58,6 +85,9 @@ function center(text: string, width: number): string {
   return ' '.repeat(left) + text + ' '.repeat(right);
 }
 
+/**
+ * Load the raw identity file from disk (for certificate generation).
+ */
 function loadRawIdentityFile(): IdentityFile | null {
   if (!existsSync(IDENTITY_FILE)) return null;
   try {
@@ -70,6 +100,9 @@ function loadRawIdentityFile(): IdentityFile | null {
   }
 }
 
+/**
+ * Generate certificate data from the current Sovereign Identity.
+ */
 export function generateCertificateData(): CertificateData | null {
   const state = initializeIdentity();
 
@@ -97,6 +130,9 @@ export function generateCertificateData(): CertificateData | null {
   };
 }
 
+/**
+ * Render the ASCII art certificate frame.
+ */
 export function renderCertificateASCII(data: CertificateData): string {
   const W = 66;
   const BAR = '+' + '-'.repeat(W) + '+';
@@ -175,10 +211,24 @@ export function renderCertificateASCII(data: CertificateData): string {
   return lines.join('\n');
 }
 
+/**
+ * Export the certificate as strata_identity.xeno (combined JSON + ASCII).
+ */
 export function exportCertificateFile(data: CertificateData): string {
   const ascii = renderCertificateASCII(data);
+  let existingMedals: CertificateMedal[] = [];
 
-  const exportPayload = {
+  if (existsSync(CERTIFICATE_FILE)) {
+    try {
+      const existingRaw = readFileSync(CERTIFICATE_FILE, 'utf8');
+      const existing = JSON.parse(existingRaw) as CertificatePayload;
+      existingMedals = Array.isArray(existing.medals) ? existing.medals : [];
+    } catch {
+      existingMedals = [];
+    }
+  }
+
+  const exportPayload: CertificatePayload = {
     _header: 'XENO_PROTOCOL // NODE IDENTITY CERTIFICATE',
     _format: 'strata_identity.xeno',
     _generatedAt: new Date().toISOString(),
@@ -193,6 +243,7 @@ export function exportCertificateFile(data: CertificateData): string {
       mode: data.mode,
       protocolVersion: data.protocolVersion,
     },
+    medals: existingMedals,
     asciiRendering: ascii,
   };
 
@@ -200,4 +251,53 @@ export function exportCertificateFile(data: CertificateData): string {
   writeFileSync(CERTIFICATE_FILE, content, 'utf8');
 
   return CERTIFICATE_FILE;
+}
+
+/**
+ * Append a Medal of Resonance tag to strata_identity.xeno.
+ * Safe to call repeatedly; duplicate medal IDs are ignored.
+ */
+export function appendMedalOfResonance(
+  medalId: string,
+  medalTag: string,
+  label: string
+): boolean {
+  const data = generateCertificateData();
+  if (!data) return false;
+
+  if (!existsSync(CERTIFICATE_FILE)) {
+    exportCertificateFile(data);
+  }
+
+  try {
+    const raw = readFileSync(CERTIFICATE_FILE, 'utf8');
+    const payload = JSON.parse(raw) as CertificatePayload;
+    const medals = Array.isArray(payload.medals) ? payload.medals : [];
+
+    if (medals.some((m) => m.id === medalId)) {
+      return true;
+    }
+
+    const awardedAt = Date.now();
+    medals.push({
+      id: medalId,
+      tag: medalTag,
+      awardedAt,
+      awardedISO: new Date(awardedAt).toISOString(),
+      label,
+    });
+
+    const medalLine = `[${medalTag}] ${label} :: ${new Date(awardedAt).toISOString()}`;
+    const decoratedAscii = `${payload.asciiRendering}\n+==================================================================+\n|                     MEDAL OF RESONANCE AWARDED                   |\n|  ${pad(medalLine, 62)}|\n+==================================================================+\n`;
+
+    payload.medals = medals;
+    payload.asciiRendering = decoratedAscii;
+    payload._generatedAt = new Date().toISOString();
+
+    writeFileSync(CERTIFICATE_FILE, JSON.stringify(payload, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('[Resonance] Failed to append medal:', err);
+    return false;
+  }
 }

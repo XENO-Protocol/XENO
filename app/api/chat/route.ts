@@ -18,9 +18,10 @@ import {
   getReflectionPromptBlock,
   getEvolutionState,
 } from '@/core/evolution';
+import { initializeResonanceListener, getResonanceState } from '@/core/resonance';
 
 const MEMORY_INJECTION_INSTRUCTION = `
-Use these only when they clearly apply to what the Host is saying or doing. Reference them coldly and briefly---e.g. "Last time you bought a cat-themed meme coin, you lost 20%. Are we repeating history, Host?" Do not list memories; weave at most one into your reply when it fits.`;
+Use these only when they clearly apply to what the Host is saying or doing. Reference them coldly and briefly鈥攅.g. "Last time you bought a cat-themed meme coin, you lost 20%. Are we repeating history, Host?" Do not list memories; weave at most one into your reply when it fits.`;
 
 /**
  * In-memory sliding window of recent Host emotion states.
@@ -34,6 +35,10 @@ console.log(`[Chat] Identity boot: mode=${identityBootState.mode} fingerprint=${
 /** Initialize Autonomous Evolution engine */
 initializeEvolution();
 console.log('[Chat] Autonomous Evolution engine initialized.');
+
+/** Initialize Resonance Listener engine */
+initializeResonanceListener();
+console.log('[Chat] Resonance Listener initialized.');
 
 const recentEmotions: EmotionTag[] = [];
 const MAX_EMOTION_HISTORY = 8;
@@ -105,6 +110,7 @@ export async function POST(req: NextRequest) {
       ...messages,
     ];
 
+    // Adjust temperature based on entropy: higher entropy = lower temperature (more deterministic, sharper)
     const temperature = entropy.band === 'CRITICAL' ? 0.4
       : entropy.band === 'VOLATILE' ? 0.5
       : entropy.band === 'ELEVATED' ? 0.6
@@ -137,6 +143,7 @@ export async function POST(req: NextRequest) {
 
     const identityInfo = getIdentityState();
     const evolutionInfo = getEvolutionState();
+    const resonanceInfo = getResonanceState();
 
     return NextResponse.json({
       content: signedEnvelope.content,
@@ -157,6 +164,11 @@ export async function POST(req: NextRequest) {
         pendingReflections: evolutionInfo.pendingReflections,
         totalGenerated: evolutionInfo.totalReflectionsGenerated,
         cronActive: evolutionInfo.active,
+      },
+      resonance: {
+        mode: resonanceInfo.mode,
+        status: resonanceInfo.status,
+        syncBoost: resonanceInfo.syncBoost,
       },
     });
   } catch (e) {

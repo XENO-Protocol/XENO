@@ -9,6 +9,7 @@ export {
   sampleFrame,
   updateEntropy,
   updateSyncRatio,
+  updateResonanceSignal,
   updateMemoryNodes,
   updateVaultStatus,
   incrementPulseCount,
