@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { ObsidianTerminal, ConsciousnessLog } from '@/components';
 

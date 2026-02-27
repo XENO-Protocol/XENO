@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="public/xeno-banner.png" alt="XENO_PROTOCOL Banner" width="100%" />
 </p>
 

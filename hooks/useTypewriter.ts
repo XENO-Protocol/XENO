@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useState, useRef, useEffect } from 'react';
 export function useTypewriter(text: string, active: boolean, onDone?: () => void): string {
   const [display, setDisplay] = useState('');
